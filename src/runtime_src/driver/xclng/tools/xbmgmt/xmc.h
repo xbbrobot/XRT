@@ -25,8 +25,8 @@
 #include <vector>
 
 // Register offset in mgmt pf BAR 0
-#define XMC_REG_BASE                        0x120000
-#define XMC_GPIO_RESET                      0x131000
+#define XMC_REG_BASE                0x140000
+#define XMC_GPIO_RESET              0x180000
 
 // Register offset in register map of XMC
 #define XMC_REG_OFF_MAGIC                   0x0

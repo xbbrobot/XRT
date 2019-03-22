@@ -523,7 +523,7 @@ setup()
     write_reg(ERT_CU_BASE_ADDRESS_ADDR,cu_base_address/4);
 
   // Command queue base address
-  write_reg(ERT_CQ_BASE_ADDRESS_ADDR,ERT_CQ_BASE_ADDR/4);
+  write_reg(ERT_CQ_BASE_ADDRESS_ADDR, 0x0);
 
   // Number of CUs
   write_reg(ERT_NUMBER_OF_CU_ADDR,num_cus);

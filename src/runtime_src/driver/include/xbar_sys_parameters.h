@@ -29,9 +29,9 @@
 
 //parameters for HWICAP, Flash and APM on PCIe BAR
 #define OCL_CTLR_OFFSET  0x000000
-#define HWICAP_OFFSET    0x020000
-#define AXI_GATE_OFFSET  0x030000
-#define BPI_FLASH_OFFSET 0x040000
+#define HWICAP_OFFSET    0x280000
+#define AXI_GATE_OFFSET  0x3A0000
+#define BPI_FLASH_OFFSET 0x2A0000
 #define PERFMON_OFFSET   0x100000
 #define HWICAP_BAR              0
 #define BPI_FLASH_BAR           0
