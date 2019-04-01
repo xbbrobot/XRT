@@ -172,8 +172,8 @@ enum subdev_id {
 #define	XOCL_RES_SYSMON					\
 		((struct resource []) {			\
 			{				\
-			.start	= 0x2C0000,		\
-			.end 	= 0x2CFFFF,		\
+			.start	= 0x260000,		\
+			.end 	= 0x26FFFF,		\
 			.flags  = IORESOURCE_MEM,	\
 			}				\
 		})
@@ -294,8 +294,8 @@ enum subdev_id {
 #define	XOCL_RES_XVC_PRI				\
 	((struct resource []) {				\
 		{					\
-			.start	= 0x2B0000,		\
-			.end	= 0x2BFFFF,		\
+			.start	= 0x250000,		\
+			.end	= 0x25FFFF,		\
 			.flags	= IORESOURCE_MEM,	\
 		},					\
 	})
@@ -394,14 +394,14 @@ enum subdev_id {
 	((struct resource []) {				\
 		/* HWICAP registers */			\
 		{					\
-			.start	= 0x280000,		\
-			.end	= 0x280119,		\
+			.start	= 0x20000,		\
+			.end	= 0x20119,		\
 			.flags  = IORESOURCE_MEM,	\
 		},					\
 		/* GENERAL_STATUS_BASE */		\
 		{					\
-			.start	= 0x290000,		\
-			.end	= 0x290003,		\
+			.start	= 0x240000,		\
+			.end	= 0x240003,		\
 			.flags  = IORESOURCE_MEM,	\
 		},					\
 		/* AXI Gate registers */		\
