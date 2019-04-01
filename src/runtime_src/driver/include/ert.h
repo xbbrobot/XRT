@@ -267,8 +267,8 @@ enum ert_cmd_type {
  */
 #define ERT_WORD_SIZE                     4          /* 4 bytes */
 #define ERT_CQ_SIZE                       0x10000    /* 64K */
-#define ERT_CQ_BASE_ADDR                  0x190000
-#define ERT_CSR_ADDR                      0x180000
+#define ERT_CQ_BASE_ADDR                  0x340000
+#define ERT_CSR_ADDR                      0x360000
 
 /**
  * The STATUS REGISTER is for communicating completed CQ slot indices
@@ -369,7 +369,7 @@ enum ert_cmd_type {
  * Interrupt controller base address
  * This value is per hardware BSP (XPAR_INTC_SINGLE_BASEADDR)
  */
-#define ERT_INTC_ADDR                     0x41200000
+#define ERT_INTC_ADDR                     0x00310000
 
 /**
  * Look up table for CUISR for CU addresses

@@ -222,7 +222,7 @@ Flasher::Flasher(unsigned int index) :
     unsigned long long feature_rom_base = 0;
     pcidev::get_dev(mIdx)->mgmt->sysfs_get("", "feature_rom_offset", err,
         feature_rom_base);
-    if (err.empty() && feature_rom_base != 0)
+    if (err.empty())
     {
         pcieBarRead(0, (unsigned long long)mMgmtMap + feature_rom_base,
             &mFRHeader, sizeof(struct FeatureRomHeader));

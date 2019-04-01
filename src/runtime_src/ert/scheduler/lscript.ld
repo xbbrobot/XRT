@@ -17,8 +17,8 @@ _HEAP_SIZE = DEFINED(_HEAP_SIZE) ? _HEAP_SIZE : 0x800;
 
 MEMORY
 {
-   static_region_brd_mgmt_scheduler_embedded_schduler_microblaze_scheduler_lm_lmb_bram_if_cntlr_Mem : ORIGIN = 0x50, LENGTH = 0xFFB0
-   static_region_brd_mgmt_scheduler_embedded_schduler_cq_bram_ctlr_Mem0 : ORIGIN = 0x190000, LENGTH = 0x10000
+   static_region_brd_mgmt_scheduler_embedded_schduler_microblaze_scheduler_lm_lmb_bram_if_cntlr_Mem : ORIGIN = 0xF0000050, LENGTH = 0xFFB0
+   static_region_brd_mgmt_scheduler_embedded_schduler_cq_bram_ctlr_Mem0 : ORIGIN = 0x340000, LENGTH = 0x10000
 }
 
 /* Specify the default entry point to the program */
@@ -29,19 +29,19 @@ ENTRY(_start)
 
 SECTIONS
 {
-.vectors.reset 0x0 : {
+.vectors.reset 0xF0000000 : {
    KEEP (*(.vectors.reset))
 } 
 
-.vectors.sw_exception 0x8 : {
+.vectors.sw_exception 0xF0000008 : {
    KEEP (*(.vectors.sw_exception))
 } 
 
-.vectors.interrupt 0x10 : {
+.vectors.interrupt 0xF0000010 : {
    KEEP (*(.vectors.interrupt))
 } 
 
-.vectors.hw_exception 0x20 : {
+.vectors.hw_exception 0xF0000020 : {
    KEEP (*(.vectors.hw_exception))
 } 
 

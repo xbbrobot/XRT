@@ -154,8 +154,8 @@ enum subdev_id {
 #define	XOCL_RES_FEATURE_ROM				\
 		((struct resource []) {			\
 			{				\
-			.start	= 0xB0000,		\
-			.end	= 0xB0FFF,		\
+			.start	= 0x00000,		\
+			.end	= 0x00FFF,		\
 			.flags	= IORESOURCE_MEM,	\
 			}				\
 		})
@@ -172,8 +172,8 @@ enum subdev_id {
 #define	XOCL_RES_SYSMON					\
 		((struct resource []) {			\
 			{				\
-			.start	= 0xA0000,		\
-			.end 	= 0xAFFFF,		\
+			.start	= 0x2C0000,		\
+			.end 	= 0x2CFFFF,		\
 			.flags  = IORESOURCE_MEM,	\
 			}				\
 		})
@@ -208,18 +208,18 @@ enum subdev_id {
 #define	XOCL_RES_AF					\
 		((struct resource []) {			\
 			{				\
-			.start	= 0xD0000,		\
-			.end 	= 0xDFFFF,		\
+			.start	= 0x1F01000,		\
+			.end 	= 0x1F01FFF,		\
 			.flags  = IORESOURCE_MEM,	\
 			},				\
 			{				\
-			.start	= 0xE0000,		\
-			.end 	= 0xEFFFF,		\
+			.start	= 0x1F02000,		\
+			.end 	= 0x1F02FFF,		\
 			.flags  = IORESOURCE_MEM,	\
 			},				\
 			{				\
-			.start	= 0xF0000,		\
-			.end 	= 0xFFFFF,		\
+			.start	= 0x1F00000,		\
+			.end 	= 0x1F00FFF,		\
 			.flags  = IORESOURCE_MEM,	\
 			},				\
 			{				\
@@ -240,23 +240,23 @@ enum subdev_id {
 #define	XOCL_RES_AF_DSA52				\
 		((struct resource []) {			\
 			{				\
-			.start	= 0xD0000,		\
-			.end 	= 0xDFFFF,		\
+			.start	= 0x1F01000,		\
+			.end 	= 0x1F01FFF,		\
 			.flags  = IORESOURCE_MEM,	\
 			},				\
 			{				\
-			.start	= 0xE0000,		\
-			.end 	= 0xE0FFF,		\
+			.start	= 0x1F02000,		\
+			.end 	= 0x1F02FFF,		\
 			.flags  = IORESOURCE_MEM,	\
 			},				\
 			{				\
-			.start	= 0xE1000,		\
-			.end 	= 0xE1FFF,		\
+			.start	= 0x1F03000,		\
+			.end 	= 0x1F03FFF,		\
 			.flags  = IORESOURCE_MEM,	\
 			},				\
 			{				\
-			.start	= 0xF0000,		\
-			.end 	= 0xFFFFF,		\
+			.start	= 0x1F00000,		\
+			.end 	= 0x1F00FFF,		\
 			.flags  = IORESOURCE_MEM,	\
 			},				\
 			{				\
@@ -277,8 +277,8 @@ enum subdev_id {
 #define	XOCL_RES_XVC_PUB				\
 	((struct resource []) {				\
 		{					\
-			.start	= 0xC0000,		\
-			.end	= 0xCFFFF,		\
+			.start	= 0x1F40000,		\
+			.end	= 0x1F4FFFF,		\
 			.flags	= IORESOURCE_MEM,	\
 		},					\
 	})
@@ -294,8 +294,8 @@ enum subdev_id {
 #define	XOCL_RES_XVC_PRI				\
 	((struct resource []) {				\
 		{					\
-			.start	= 0x1C0000,		\
-			.end	= 0x1CFFFF,		\
+			.start	= 0x2B0000,		\
+			.end	= 0x2BFFFF,		\
 			.flags	= IORESOURCE_MEM,	\
 		},					\
 	})
@@ -311,8 +311,8 @@ enum subdev_id {
 #define	XOCL_RES_XIIC					\
 	((struct resource []) {				\
 		{					\
-			.start	= 0x41000,		\
-			.end	= 0x41FFF,		\
+			.start	= 0x1C0000,		\
+			.end	= 0x1C0FFF,		\
 			.flags  = IORESOURCE_MEM,	\
 		},					\
 	})
@@ -344,12 +344,12 @@ enum subdev_id {
 		ARRAY_SIZE(XOCL_RES_DNA),		\
 	}
 
-#define	XOCL_MAILBOX_OFFSET_MGMT	0x210000
+#define	XOCL_MAILBOX_OFFSET_MGMT	0x1F10000
 #define	XOCL_RES_MAILBOX_MGMT				\
 	((struct resource []) {				\
 		{					\
 			.start	= XOCL_MAILBOX_OFFSET_MGMT, \
-			.end	= 0x21002F,		\
+			.end	= 0x1F1002F,		\
 			.flags  = IORESOURCE_MEM,	\
 		},					\
 		{					\
@@ -367,12 +367,12 @@ enum subdev_id {
 		ARRAY_SIZE(XOCL_RES_MAILBOX_MGMT),	\
 	}
 
-#define	XOCL_MAILBOX_OFFSET_USER	0x200000
+#define	XOCL_MAILBOX_OFFSET_USER	0x1F20000
 #define	XOCL_RES_MAILBOX_USER				\
 	((struct resource []) {				\
 		{					\
 			.start	= XOCL_MAILBOX_OFFSET_USER, \
-			.end	= 0x20002F,		\
+			.end	= 0x1F2002F,		\
 			.flags  = IORESOURCE_MEM,	\
 		},					\
 		{					\
@@ -394,32 +394,32 @@ enum subdev_id {
 	((struct resource []) {				\
 		/* HWICAP registers */			\
 		{					\
-			.start	= 0x020000,		\
-			.end	= 0x020119,		\
+			.start	= 0x280000,		\
+			.end	= 0x280119,		\
 			.flags  = IORESOURCE_MEM,	\
 		},					\
 		/* GENERAL_STATUS_BASE */		\
 		{					\
-			.start	= 0x032000,		\
-			.end	= 0x032003,		\
+			.start	= 0x290000,		\
+			.end	= 0x290003,		\
 			.flags  = IORESOURCE_MEM,	\
 		},					\
 		/* AXI Gate registers */		\
 		{					\
-			.start	= 0x030000,		\
-			.end	= 0x03000b,		\
+			.start	= 0x3A0000,		\
+			.end	= 0x3A000B,		\
 			.flags  = IORESOURCE_MEM,	\
 		},					\
 		/* OCL_CLKWIZ0_BASE */			\
 		{					\
-			.start	= 0x050000,		\
-			.end	= 0x050fff,		\
+			.start	= 0x380000,		\
+			.end	= 0x380FFF,		\
 			.flags  = IORESOURCE_MEM,	\
 		},					\
 		/* OCL_CLKWIZ1_BASE */			\
 		{					\
-			.start	= 0x051000,		\
-			.end	= 0x051fff,		\
+			.start	= 0x390000,		\
+			.end	= 0x390FFF,		\
 			.flags  = IORESOURCE_MEM,	\
 		},					\
 		/* OCL_CLKFREQ_BASE */			\
@@ -449,28 +449,28 @@ enum subdev_id {
 #define	XOCL_RES_XMC					\
 		((struct resource []) {			\
 			{				\
-			.start	= 0x120000,		\
-			.end 	= 0x121FFF,		\
-			.flags  = IORESOURCE_MEM,	\
-			},				\
-			{				\
-			.start	= 0x131000,		\
-			.end 	= 0x131FFF,		\
-			.flags  = IORESOURCE_MEM,	\
-			},				\
-			{				\
 			.start	= 0x140000,		\
-			.end 	= 0x15FFFF,		\
+			.end 	= 0x141FFF,		\
 			.flags  = IORESOURCE_MEM,	\
 			},				\
 			{				\
-			.start	= 0x160000,		\
-			.end 	= 0x17FFFF,		\
+			.start	= 0x180000,		\
+			.end 	= 0x180FFF,		\
 			.flags  = IORESOURCE_MEM,	\
 			},				\
 			{				\
-			.start	= 0x190000,		\
-			.end 	= 0x19FFFF,		\
+			.start	= 0x100000,		\
+			.end 	= 0x11FFFF,		\
+			.flags  = IORESOURCE_MEM,	\
+			},				\
+			{				\
+			.start	= 0x300000,		\
+			.end 	= 0x31FFFF,		\
+			.flags  = IORESOURCE_MEM,	\
+			},				\
+			{				\
+			.start	= 0x340000,		\
+			.end 	= 0x34FFFF,		\
 			.flags  = IORESOURCE_MEM,	\
 			},				\
 		})
@@ -494,23 +494,23 @@ enum subdev_id {
 #define	XOCL_RES_MB					\
 		((struct resource []) {			\
 			{				\
-			.start	= 0x120000,		\
-			.end 	= 0x121FFF,		\
-			.flags  = IORESOURCE_MEM,	\
-			},				\
-			{				\
-			.start	= 0x131000,		\
-			.end 	= 0x131FFF,		\
-			.flags  = IORESOURCE_MEM,	\
-			},				\
-			{				\
 			.start	= 0x140000,		\
-			.end 	= 0x15FFFF,		\
+			.end 	= 0x141FFF,		\
 			.flags  = IORESOURCE_MEM,	\
 			},				\
 			{				\
-			.start	= 0x160000,		\
-			.end 	= 0x17FFFF,		\
+			.start	= 0x180000,		\
+			.end 	= 0x180FFF,		\
+			.flags  = IORESOURCE_MEM,	\
+			},				\
+			{				\
+			.start	= 0x100000,		\
+			.end 	= 0x11FFFF,		\
+			.flags  = IORESOURCE_MEM,	\
+			},				\
+			{				\
+			.start	= 0x300000,		\
+			.end 	= 0x31FFFF,		\
 			.flags  = IORESOURCE_MEM,	\
 			},				\
 		})

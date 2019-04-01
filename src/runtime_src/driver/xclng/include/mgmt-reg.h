@@ -38,10 +38,10 @@ enum PFO_BARS {
 #define MMAP_SIZE_USER         	MB(32)
 
 //parameters for HWICAP, Flash and APM on PCIe BAR
-#define HWICAP_OFFSET           0x020000
-#define AXI_GATE_OFFSET         0x030000
-#define AXI_GATE_OFFSET_READ    0x030008
-#define BPI_FLASH_OFFSET        0x040000
+#define HWICAP_OFFSET           0x280000
+#define AXI_GATE_OFFSET         0x3A0000
+#define AXI_GATE_OFFSET_READ    0x3A0008
+#define BPI_FLASH_OFFSET        0x2A0000
 
 //Base addresses for LAPC
 #define LAPC0_BASE            0x00120000  //ocl master00
@@ -69,18 +69,18 @@ enum PFO_BARS {
 #define PERFMON_START_OFFSET	0x2000
 #define PERFMON_RANGE			0x1000
 
-#define FEATURE_ROM_BASE           0x0B0000
+#define FEATURE_ROM_BASE           0x000000
 #define OCL_CTLR_BASE              0x000000
-#define HWICAP_BASE                0x020000
-#define AXI_GATE_BASE              0x030000
-#define AXI_GATE_BASE_RD_BASE      0x030008
-#define FEATURE_ID_BASE            0x031000
-#define GENERAL_STATUS_BASE        0x032000
-#define AXI_I2C_BASE               0x041000
+#define HWICAP_BASE                0x280000
+#define AXI_GATE_BASE              0x3A0000
+#define AXI_GATE_BASE_RD_BASE      0x3A0008
+#define FEATURE_ID_BASE            0x200000
+#define GENERAL_STATUS_BASE        0x290000
+#define AXI_I2C_BASE               0x1C0000
 #define PERFMON0_BASE              0x100000
 #define PERFMON0_BASE2             0x1800000
-#define OCL_CLKWIZ0_BASE           0x050000
-#define OCL_CLKWIZ1_BASE           0x051000
+#define OCL_CLKWIZ0_BASE           0x380000
+#define OCL_CLKWIZ1_BASE           0x390000
 /* Only needed for workaround for 5.0 platforms */
 #define GPIO_NULL_BASE             0x1FFF000
 
@@ -91,9 +91,9 @@ enum PFO_BARS {
 /**
  * AXI Firewall Register definition
  */
-#define FIREWALL_MGMT_CONTROL_BASE	0xD0000
-#define FIREWALL_USER_CONTROL_BASE	0xE0000
-#define FIREWALL_DATAPATH_BASE		0xF0000
+#define FIREWALL_MGMT_CONTROL_BASE	0x1F01000
+#define FIREWALL_USER_CONTROL_BASE	0x1F02000
+#define FIREWALL_DATAPATH_BASE		0x1F00000
 
 #define AF_MI_FAULT_STATUS_OFFSET     	       0x0	//MI Fault Status Register
 #define AF_MI_SOFT_CTRL_OFFSET		       0x4	//MI Soft Fault Control Register
@@ -118,7 +118,7 @@ enum PFO_BARS {
 /**
  * SYSMON Register definition
  */
-#define SYSMON_BASE		0x0A0000
+#define SYSMON_BASE		0x2C0000
 #define SYSMON_TEMP 		0x400 		// TEMPOERATURE REGISTER ADDRESS
 #define SYSMON_VCCINT		0x404 		// VCCINT REGISTER OFFSET
 #define SYSMON_VCCAUX		0x408 		// VCCAUX REGISTER OFFSET
@@ -220,10 +220,10 @@ typedef struct {
  * MicroBlaze definition
  */
 
-#define	MB_REG_BASE		0x120000
-#define	MB_GPIO			0x131000
-#define	MB_IMAGE_MGMT		0x140000
-#define	MB_IMAGE_SCHE		0x160000
+#define	MB_REG_BASE		0x140000
+#define	MB_GPIO			0x180000
+#define	MB_IMAGE_MGMT		0x100000
+#define	MB_IMAGE_SCHE		0x300000
 
 #define	MB_REG_VERSION		(MB_REG_BASE)
 #define	MB_REG_ID		(MB_REG_BASE + 0x4)
