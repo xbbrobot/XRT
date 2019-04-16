@@ -120,18 +120,19 @@ namespace xdp {
   }
 
   // Write data transfer event to trace
-  void TraceLogger::writeTimelineTrace(double traceTime,
+  void TraceLogger::writeTimelineTrace(double traceTime, RTUtil::e_profile_command_kind kind,
       const std::string& commandString, const std::string& stageString,
       const std::string& eventString, const std::string& dependString,
-      size_t size, uint64_t address, const std::string& bank,
+      size_t size, uint64_t srcAddress, const std::string& srcBank,
+      uint64_t dstAddress, const std::string& dstBank,
       std::thread::id threadId) const
   {
     //if (!this->isTimelineTraceFileOn())
     //  return;
 
     for (auto w : mTraceWriters) {
-      w->writeTransfer(traceTime, commandString, stageString, eventString, dependString,
-                       size, address, bank, threadId);
+      w->writeTransfer(traceTime, kind, commandString, stageString, eventString, dependString,
+                       size, srcAddress, srcBank, dstAddress, dstBank, threadId);
     }
   }
 
@@ -215,8 +216,9 @@ namespace xdp {
   void TraceLogger::logDataTransfer(uint64_t objId, RTUtil::e_profile_command_kind objKind,
       RTUtil::e_profile_command_state objStage, size_t objSize, uint32_t contextId,
       uint32_t numDevices, std::string deviceName, uint32_t commandQueueId,
-      uint64_t address, const std::string& bank, std::thread::id threadId,
-      const std::string eventString, const std::string dependString, double timeStampMsec)
+      uint64_t srcAddress, const std::string& srcBank, uint64_t dstAddress, const std::string& dstBank,
+      std::thread::id threadId, const std::string eventString, const std::string dependString,
+      double timeStampMsec)
   {
     double timeStamp = (timeStampMsec > 0.0) ? timeStampMsec :
         mPluginHandle->getTraceTime();
@@ -244,25 +246,16 @@ namespace xdp {
     // We can safely discard those events
     if (objStage == RTUtil::END && (traceObject->getStart() > 0.0)) {
       // Collect performance counters
-      switch (objKind) {
-      case RTUtil::READ_BUFFER: {
-        mProfileCounters->logBufferRead(objSize, (traceObject->End - traceObject->Start), contextId, numDevices);
-        mProfileCounters->pushToSortedTopUsage(traceObject, true);
-        break;
-      }
-      case RTUtil::WRITE_BUFFER: {
-        mProfileCounters->logBufferWrite(objSize, (traceObject->End - traceObject->Start), contextId, numDevices);
-        mProfileCounters->pushToSortedTopUsage(traceObject, false);
-        break;
-      }
-      default:
-        assert(0);
-        break;
+      mProfileCounters->logBufferTransfer(objKind, objSize, (traceObject->End - traceObject->Start), contextId, numDevices);
+
+      if (objKind == RTUtil::READ_BUFFER || objKind == RTUtil::WRITE_BUFFER) {
+        bool isRead = (objKind == RTUtil::READ_BUFFER);
+        mProfileCounters->pushToSortedTopUsage(traceObject, isRead);
       }
 
       // Mark and keep top trace data
       // Data can be additionally streamed to a data transfer record
-      traceObject->Address = address;
+      traceObject->Address = srcAddress;
       traceObject->Size = objSize;
       traceObject->ContextId = contextId;
       traceObject->CommandQueueId = commandQueueId;
@@ -273,8 +266,8 @@ namespace xdp {
       addToThreadIds(threadId);
     }
 
-    writeTimelineTrace(timeStamp, commandString, stageString, eventString, dependString,
-                       objSize, address, bank, threadId);
+    writeTimelineTrace(timeStamp, objKind, commandString, stageString, eventString, dependString,
+                       objSize, srcAddress, srcBank, dstAddress, dstBank, threadId);
 
 #if 0
     // Write host event to trace buffer
@@ -332,7 +325,6 @@ namespace xdp {
     RTUtil::commandStageToString(objStage, stageString);
 
     std::string cuName("");
-    std::string cuName2("");
 
     std::string globalSize = std::to_string(globalWorkSize[0]) + ":" +
         std::to_string(globalWorkSize[1]) + ":" + std::to_string(globalWorkSize[2]);
@@ -404,11 +396,22 @@ namespace xdp {
     // Compute Units
     //
     else {
+      /*
+       * log cu stats per device + xclbin + programID
+       * IN HW_EMU the monitors aren't reset even on xclbin change
+       * i.e counters for same xclbin accumulate for every program ID
+       * IN HW the monitors are initialied to 0 for every xclbin load
+       * so counter data is unique for every program ID + xclbin combination
+       */
+      std::string uniqueCuDataKey;
+      if (mPluginHandle->getFlowMode() == xdp::RTUtil::DEVICE) {
+        uniqueCuDataKey = xclbinName + std::to_string(programId);
+      } else {
+        uniqueCuDataKey = xclbinName + std::to_string(0);
+      }
       // Naming used in profile summary
       cuName = newDeviceName + "|" + kernelName + "|" + globalSize + "|" + localSize
-               + "|" + cu_name + "|" + std::to_string(0x1);
-      // Naming used in timeline trace
-      cuName2 = kernelName + "|" + localSize + "|" + cu_name;
+               + "|" + cu_name + "|" + uniqueCuDataKey;
       if (objStage == RTUtil::START) {
         XDP_LOG("logKernelExecution: CU START @ %.3f msec for %s\n", deviceTimeStamp, cuName.c_str());
         if (mPluginHandle->getFlowMode() == xdp::RTUtil::CPU) {
@@ -424,7 +427,8 @@ namespace xdp {
         mProfileCounters->logComputeUnitExecutionEnd(cuName, deviceTimeStamp);
       }
 
-      //New timeline summary data.
+      // Naming used in timeline trace
+      std::string cuName2 = kernelName + "|" + localSize + "|" + cu_name;
       std::string uniqueCUName("KERNEL|");
       (uniqueCUName += newDeviceName) += "|";
       (uniqueCUName += xclbinName) += "|";

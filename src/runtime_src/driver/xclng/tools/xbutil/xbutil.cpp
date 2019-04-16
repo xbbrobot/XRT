@@ -25,6 +25,7 @@
 #include <sys/mman.h>
 
 #include "xbutil.h"
+#include "ert.h"
 #include "shim.h"
 
 int bdf2index(std::string& bdfStr, unsigned& index)
@@ -123,11 +124,13 @@ void print_pci_info(void)
         bool ready = dev->is_ready;
 
         if (mdev != nullptr) {
+            std::cout << (ready ? "" : "*");
             std::cout << "[" << i << "]" << "mgmt";
             print(mdev);
         }
 
         if (udev != nullptr) {
+            std::cout << (ready ? "" : "*");
             std::cout << "[" << i << "]" << "user";
             print(udev);
         }
@@ -149,7 +152,7 @@ int main(int argc, char *argv[])
     unsigned index = 0xffffffff;
     unsigned regionIndex = 0xffffffff;
     unsigned computeIndex = 0xffffffff;
-    unsigned short targetFreq[2] = {0, 0};
+    unsigned short targetFreq[4] = {0, 0, 0, 0};
     unsigned fanSpeed = 0;
     unsigned long long startAddr = 0;
     unsigned int pattern_byte = 'J';//Rather than zero; writing char 'J' by default
@@ -241,7 +244,7 @@ int main(int argc, char *argv[])
     };
 
     int long_index;
-    const char* short_options = "a:b:c:d:e:f:g:i:m:n:o:p:r:s"; //don't add numbers
+    const char* short_options = "a:b:c:d:e:f:g:h:i:m:n:o:p:r:s"; //don't add numbers
     while ((c = getopt_long(argc, argv, short_options, long_options, &long_index)) != -1)
     {
         if (cmd == xcldev::LIST) {
@@ -431,6 +434,13 @@ int main(int argc, char *argv[])
             }
             targetFreq[1] = std::atoi(optarg);
             break;
+        case 'h':
+            if (cmd != xcldev::CLOCK) {
+                std::cout << "ERROR: '-h' only allowed with 'clock' command\n";
+                return -1;
+            }
+            targetFreq[2] = std::atoi(optarg);
+            break;
         case 'm':
             if (cmd != xcldev::FLASH) {
                 std::cout << "ERROR: '-m' only allowed with 'flash' command\n";
@@ -509,6 +519,7 @@ int main(int argc, char *argv[])
     case xcldev::QUERY:
     case xcldev::SCAN:
     case xcldev::STATUS:
+    case xcldev::M2MTEST:
         break;
     case xcldev::PROGRAM:
     {
@@ -520,8 +531,8 @@ int main(int argc, char *argv[])
     }
     case xcldev::CLOCK:
     {
-        if (!targetFreq[0] && !targetFreq[1]) {
-            std::cout << "ERROR: Please specify frequency(ies) with '-f' and or '-g' switch(es)\n";
+        if (!targetFreq[0] && !targetFreq[1] && !targetFreq[2]) {
+            std::cout << "ERROR: Please specify frequency(ies) with '-f' and or '-g' and or '-h' switch(es)\n";
             return -1;
         }
         break;
@@ -654,7 +665,9 @@ int main(int argc, char *argv[])
 	  result = deviceVec[index]->readStreamingCheckers(1);
 	}
         break;
-
+    case xcldev::M2MTEST:
+        result = deviceVec[index]->testM2m();
+        break;
     default:
         std::cout << "ERROR: Not implemented\n";
         result = -1;
@@ -673,11 +686,12 @@ void xcldev::printHelp(const std::string& exe)
     std::cout << "Running xbutil for 4.0+ shell's \n\n";
     std::cout << "Usage: " << exe << " <command> [options]\n\n";
     std::cout << "Command and option summary:\n";
-    std::cout << "  clock   [-d card] [-r region] [-f clock1_freq_MHz] [-g clock2_freq_MHz]\n";
+    std::cout << "  clock   [-d card] [-r region] [-f clock1_freq_MHz] [-g clock2_freq_MHz] [-h clock3_freq_MHz]\n";
     std::cout << "  dmatest [-d card] [-b [0x]block_size_KB]\n";
     std::cout << "  dump\n";
     std::cout << "  help\n";
     std::cout << "  list\n";
+    std::cout << "  m2mtest\n";
     std::cout << "  mem --read [-d card] [-a [0x]start_addr] [-i size_bytes] [-o output filename]\n";
     std::cout << "  mem --write [-d card] [-a [0x]start_addr] [-i size_bytes] [-e pattern_byte]\n";
     std::cout << "  program [-d card] [-r region] -p xclbin\n";
@@ -1010,12 +1024,12 @@ int xcldev::device::validate(bool quick)
     std::cout << "INFO: Checking PCIE link status: " << std::flush;
     if (m_devinfo.mPCIeLinkSpeed != m_devinfo.mPCIeLinkSpeedMax ||
         m_devinfo.mPCIeLinkWidth != m_devinfo.mPCIeLinkWidthMax) {
-        std::cout << "FAILED" << std::endl;
-        std::cout << "WARNING: Card trained to lower spec. "
-            << "Expect: Gen" << m_devinfo.mPCIeLinkSpeedMax << "x"
-            << m_devinfo.mPCIeLinkWidthMax
-            << ", Current: Gen" << m_devinfo.mPCIeLinkSpeed << "x"
-            << m_devinfo.mPCIeLinkWidth
+        std::cout << "LINK ACTIVE, ATTENTION" << std::endl;
+        std::cout << "WARNING: Ensure Card is plugged in to Gen" 
+            << m_devinfo.mPCIeLinkSpeedMax << "x" << m_devinfo.mPCIeLinkWidthMax
+            << ", instead of Gen" << m_devinfo.mPCIeLinkSpeed << "x"
+            << m_devinfo.mPCIeLinkWidth << "\n         "
+            << "Lower performance may be experienced"
             << std::endl;
         retVal = 1;
         // Non-fatal, continue validating.
@@ -1093,6 +1107,15 @@ int xcldev::device::validate(bool quick)
         return ret;
     }
     std::cout << "INFO: P2P test PASSED" << std::endl;
+
+    //Perform M2M test
+    std::cout << "INFO: Starting M2M test" << std::endl;
+    ret = testM2m();
+    if (ret != 0) {
+        std::cout << "ERROR: M2M test FAILED" << std::endl;
+        return ret;
+    }
+    std::cout << "INFO: M2M test PASSED" << std::endl;
 
     return retVal;
 }
@@ -1470,5 +1493,183 @@ int xcldev::xclP2p(int argc, char *argv[])
     } else if (ret)
         std::cout << "ERROR: " << strerror(ret) << std::endl;
 
+    return ret;
+}
+
+/*
+ * m2mtest
+ */
+static void m2m_free_unmap_bo(xclDeviceHandle handle, unsigned boh, 
+    void * boptr, size_t boSize)
+{
+    if(boptr != nullptr)
+        munmap(boptr, boSize);
+    if(boh != NULLBO)
+        xclFreeBO(handle, boh);
+}
+
+static int m2m_alloc_init_bo(xclDeviceHandle handle, unsigned &boh, 
+    char * &boptr, size_t boSize, int bank, char pattern)
+{
+    boh = xclAllocBO(handle, boSize, XCL_BO_DEVICE_RAM, bank);
+    if (boh == NULLBO) {
+        std::cout << "Error allocating BO" << std::endl;
+        return -ENOMEM;
+    }
+    boptr = (char*) xclMapBO(handle, boh, true);
+    if (boptr == nullptr) {
+        std::cout << "Error mapping BO" << std::endl;
+        m2m_free_unmap_bo(handle, boh, boptr, boSize);
+        return -EINVAL;
+    }
+    memset(boptr, pattern, boSize);
+    if(xclSyncBO(handle, boh, XCL_BO_SYNC_BO_TO_DEVICE, boSize, 0)) {
+        std::cout << "ERROR: Unable to sync BO" << std::endl;
+        m2m_free_unmap_bo(handle, boh, boptr, boSize);
+        return -EINVAL;
+    }
+    return 0;
+}
+
+static int m2mtest_bank(xclDeviceHandle handle, uuid_t uuid, int bank_a, int bank_b)
+{
+    unsigned boSrc = NULLBO;
+    unsigned boTgt = NULLBO;
+    char *boSrcPtr = nullptr;
+    char *boTgtPtr = nullptr;
+
+    const size_t boSize = 256L * 1024 * 1024;
+    if (xclOpenContext(handle, uuid, -1, true)) {
+        std::cout << "ERROR: Unable to lockdown xclbin" << std::endl;
+        return -EINVAL;
+    }
+
+    //Allocate and init boSrc
+    if(m2m_alloc_init_bo(handle, boSrc, boSrcPtr, boSize, bank_a, 'A')) {
+        xclCloseContext(handle, uuid, -1);
+        return -EINVAL;
+    }
+
+    //Allocate and init boTgt
+    if(m2m_alloc_init_bo(handle, boTgt, boTgtPtr, boSize, bank_b, 'B')) {
+        m2m_free_unmap_bo(handle, boSrc, boSrcPtr, boSize);
+        xclCloseContext(handle, uuid, -1);
+        return -EINVAL;
+    }
+    //Allocate the exec_bo
+    unsigned execHandle = xclAllocBO(handle, sizeof (ert_start_copybo_cmd),
+        xclBOKind(0), (1<<31));
+    struct ert_start_copybo_cmd *execData =
+        reinterpret_cast<struct ert_start_copybo_cmd *>(
+        xclMapBO(handle, execHandle, true));
+    ert_fill_copybo_cmd(execData, boSrc, boTgt, 0, 0, boSize);
+
+    xcldev::Timer timer;
+    if(xclExecBuf(handle, execHandle)) {
+        m2m_free_unmap_bo(handle, boSrc, boSrcPtr, boSize);
+        m2m_free_unmap_bo(handle, boTgt, boTgtPtr, boSize);
+        m2m_free_unmap_bo(handle, execHandle, execData, sizeof (ert_start_copybo_cmd));
+        xclCloseContext(handle, uuid, -1);
+        std::cout << "ERROR: Unable to issue xclExecBuf" << std::endl;
+        return -EINVAL;
+    }
+
+    while (execData->state < ERT_CMD_STATE_COMPLETED){
+        while (xclExecWait(handle, 1000) == 0) {
+            std::cout << "reentering wait...\n";
+        };
+    }
+    double timer_stop = timer.stop();
+
+    if(xclSyncBO(handle, boTgt, XCL_BO_SYNC_BO_FROM_DEVICE, boSize, 0)) {
+        m2m_free_unmap_bo(handle, boSrc, boSrcPtr, boSize);
+        m2m_free_unmap_bo(handle, boTgt, boTgtPtr, boSize);
+        m2m_free_unmap_bo(handle, execHandle, execData, sizeof (ert_start_copybo_cmd));
+        xclCloseContext(handle, uuid, -1);
+        std::cout << "ERROR: Unable to sync target BO" << std::endl;
+        return -EINVAL;
+    }
+    
+    bool match = (memcmp(boSrcPtr, boTgtPtr, boSize) == 0);
+
+    // Clean up
+    m2m_free_unmap_bo(handle, boSrc, boSrcPtr, boSize);
+    m2m_free_unmap_bo(handle, boTgt, boTgtPtr, boSize);
+    m2m_free_unmap_bo(handle, execHandle, execData, sizeof (ert_start_copybo_cmd));
+
+    xclCloseContext(handle, uuid, -1);
+
+    if (!match) {
+        std::cout << "Memory comparison failed" << std::endl;
+        return -EINVAL;
+    }
+
+    //bandwidth
+    double total = boSize;
+    total *= 1000000; // convert us to s 
+    total /= (1024 * 1024); //convert to MB
+    std::cout << total / timer_stop << " MB/s\t\n";
+
+    return 0;
+}
+
+int xcldev::device::testM2m()
+{
+    std::string errmsg;
+    std::vector<char> buf;
+    std::string xclbinid;
+    int m2m_enabled = 0;
+    std::vector<mem_data> usedBanks;
+    uuid_t uuid;
+    int ret = 0;
+
+    auto dev = pcidev::get_dev(m_idx);
+    if (dev->user == nullptr)
+        return -EINVAL;
+
+    dev->user->sysfs_get("mb_scheduler", "kds_numcdmas", errmsg, m2m_enabled);
+    if (m2m_enabled == 0) {
+        std::cout << "M2M is not available. Skipping validation" << std::endl;
+        return 0;
+    }
+
+    dev->user->sysfs_get("icap", "mem_topology", errmsg, buf);
+    const mem_topology *map = (mem_topology *)buf.data();
+
+    if(buf.empty() || map->m_count == 0) {
+        std::cout << "WARNING: 'mem_topology' invalid, "
+            << "unable to perform M2M Test. Has the bitstream been loaded? "
+            << "See 'xbutil program'." << std::endl;
+        return -EINVAL;
+    }
+
+    dev->user->sysfs_get("", "xclbinuuid", errmsg, xclbinid);
+    uuid_parse(xclbinid.c_str(), uuid);
+
+    if(xclbinid.empty()) {
+        std::cout << "WARNING: 'xclbinuuid' invalid, "
+            << "unable to perform M2M Test. Bad xclbin. " << std::endl;
+        return -EINVAL;
+    }
+
+    for(int32_t i = 0; i < map->m_count; i++) {
+        if(map->m_mem_data[i].m_used)
+            usedBanks.insert(usedBanks.end(), map->m_mem_data[i]);
+    }
+
+    if (usedBanks.size() <= 1) {
+        std::cout << "Only one bank available. Skipping validation" << std::endl;
+        return ret;
+    }
+
+    for(uint i = 0; i < usedBanks.size()-1; i++) {
+        for(uint j = i+1; j < usedBanks.size(); j++) {
+            std::cout << usedBanks[i].m_tag << " -> "
+                << usedBanks[j].m_tag << " M2M bandwidth: ";
+            ret = m2mtest_bank(m_handle, uuid, i, j);
+            if(ret != 0)
+                return ret;
+        }
+    }
     return ret;
 }

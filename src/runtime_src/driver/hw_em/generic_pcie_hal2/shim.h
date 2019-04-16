@@ -28,6 +28,8 @@
 #include "xcl_api_macros.h"
 #include "xcl_macros.h"
 #include "xclbin.h"
+#include "driver/common/scheduler.h"
+#include "driver/common/message.h"
 
 #include "mem_model.h"
 #include "mbscheduler.h"
@@ -42,6 +44,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <tuple>
+#include <stdarg.h>
 #ifdef _WINDOWS
 #define strtoll _strtoi64
 #endif
@@ -82,7 +85,7 @@ using addr_type = uint64_t;
 
       // HAL2 RELATED member functions start
       unsigned int xclAllocBO(size_t size, xclBOKind domain, unsigned flags);
-      int xoclCreateBo(xclemulation::xocl_create_bo *info);
+      uint64_t xoclCreateBo(xclemulation::xocl_create_bo *info);
       void* xclMapBO(unsigned int boHandle, bool write);
       int xclSyncBO(unsigned int boHandle, xclBOSyncDirection dir, size_t size, size_t offset); 
       unsigned int xclAllocUserPtrBO(void *userptr, size_t size, unsigned flags);
@@ -92,6 +95,7 @@ using addr_type = uint64_t;
       void xclFreeBO(unsigned int boHandle);
       ssize_t xclUnmgdPwrite(unsigned flags, const void *buf, size_t count, uint64_t offset);
       ssize_t xclUnmgdPread(unsigned flags, void *buf, size_t count, uint64_t offset);
+      static int xclLogMsg(xclDeviceHandle handle, xclLogMsgLevel level, const char* tag, const char* format, va_list args1);
 
       //P2P Support
       int xclExportBO(unsigned int boHandle); 
@@ -187,6 +191,7 @@ using addr_type = uint64_t;
       static const unsigned CONTROL_AP_START;
       static const unsigned CONTROL_AP_DONE;
       static const unsigned CONTROL_AP_IDLE;
+      static const unsigned CONTROL_AP_CONTINUE;
 
       bool isUnified()               { return bUnified; }
       void setUnified(bool _unified) { bUnified = _unified; }
@@ -220,6 +225,7 @@ using addr_type = uint64_t;
 
       void initMemoryManager(std::list<xclemulation::DDRBank>& DDRBankList);
       std::vector<xclemulation::MemoryManager *> mDDRMemoryManager;
+      xclemulation::MemoryManager* mDataSpace;
       std::list<xclemulation::DDRBank> mDdrBanks;
       std::map<uint64_t,std::map<uint64_t, KernelArg>> mKernelOffsetArgsInfoMap;
       std::map<uint64_t,uint64_t> mAddrMap;

@@ -282,6 +282,12 @@ get_stream(xrt::device::stream_flags flags, xrt::device::stream_attrs attrs, con
 
   if(ext && ext->param) {
     auto kernel = xocl::xocl(ext->kernel);
+
+#if 0
+    if (kernel->get_cus().size() > 1)
+        throw xocl::error(CL_INVALID_OPERATION, "Can not create stream because the kernel object has more than one CUs");
+#endif
+
     auto& kernel_name = kernel->get_name_from_constructor();
     auto memidx = m_xclbin.get_memidx_from_arg(kernel_name,ext->flags,conn);
     auto mems = m_xclbin.get_mem_topology();
@@ -332,16 +338,16 @@ close_stream(xrt::device::stream_handle stream, int connidx)
 
 ssize_t
 device::
-write_stream(xrt::device::stream_handle stream, const void* ptr, size_t offset, size_t size, xrt::device::stream_xfer_req* req)
+write_stream(xrt::device::stream_handle stream, const void* ptr, size_t size, xrt::device::stream_xfer_req* req)
 {
-  return m_xdevice->writeStream(stream, ptr, offset, size, req);
+  return m_xdevice->writeStream(stream, ptr, size, req);
 }
 
 ssize_t
 device::
-read_stream(xrt::device::stream_handle stream, void* ptr, size_t offset, size_t size, xrt::device::stream_xfer_req* req)
+read_stream(xrt::device::stream_handle stream, void* ptr, size_t size, xrt::device::stream_xfer_req* req)
 {
-  return m_xdevice->readStream(stream, ptr, offset, size, req);
+  return m_xdevice->readStream(stream, ptr, size, req);
 }
 
 xrt::device::stream_buf
@@ -1183,6 +1189,9 @@ load_program(program* program)
   m_active = program;
   profile::add_to_active_devices(get_unique_name());
 
+  // In order to use virtual CUs (KDMA) we must open a virtual context
+  m_xdevice->acquire_cu_context(-1,true);
+
   init_scheduler(this);
 }
 
@@ -1192,6 +1201,7 @@ unload_program(const program* program)
 {
   if (m_active == program) {
     clear_cus();
+    m_xdevice->release_cu_context(-1); // release virtual CU context
     m_active = nullptr;
   }
 }
@@ -1200,6 +1210,7 @@ bool
 device::
 acquire_context(const compute_unit* cu, bool shared) const
 {
+  std::lock_guard<std::mutex> lk(m_mutex);
   if (cu->m_context_type != compute_unit::context_type::none)
     return true;
 

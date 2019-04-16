@@ -207,17 +207,17 @@ extern "C" {
 
     /****   MEMORY TOPOLOGY SECTION ****/
     struct mem_data {
-	uint8_t m_type; //enum corresponding to mem_type.
-	uint8_t m_used; //if 0 this bank is not present
-	union {
-	    uint64_t m_size; //if mem_type DDR, then size in KB;
-	    uint64_t route_id; //if streaming then "route_id"
-	};
-	union {
-	    uint64_t m_base_address;//if DDR then the base address;
-	    uint64_t flow_id; //if streaming then "flow id"
-	};
-	unsigned char m_tag[16]; //DDR: BANK0,1,2,3, has to be null terminated; if streaming then stream0, 1 etc
+        uint8_t m_type; //enum corresponding to mem_type.
+        uint8_t m_used; //if 0 this bank is not present
+        union {
+            uint64_t m_size; //if mem_type DDR, then size in KB;
+            uint64_t route_id; //if streaming then "route_id"
+        };
+        union {
+            uint64_t m_base_address;//if DDR then the base address;
+            uint64_t flow_id; //if streaming then "flow id"
+        };
+        unsigned char m_tag[16]; //DDR: BANK0,1,2,3, has to be null terminated; if streaming then stream0, 1 etc
     };
 
     struct mem_topology {
@@ -256,7 +256,8 @@ extern "C" {
     enum IP_CONTROL {
         AP_CTRL_HS = 0,
         AP_CTRL_CHAIN = 1,
-        AP_CTRL_NONE = 2
+        AP_CTRL_NONE = 2,
+        AP_CTRL_ME = 3
     };
 
     #define IP_CONTROL_MASK  0xFF00

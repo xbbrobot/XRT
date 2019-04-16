@@ -19,7 +19,6 @@
  */
 
 #include <shim.h>
-#include "driver/common/scheduler.h"
 
 int xclExportBO(xclDeviceHandle handle, unsigned int boHandle)
 {
@@ -318,7 +317,7 @@ int xclLoadXclBin(xclDeviceHandle handle, const xclBin *buffer)
     return -1;
   auto ret = drv->xclLoadXclBin(buffer);
   if (!ret)
-      ret = xrt_core::scheduler::init(handle,buffer);
+      ret = xrt_core::scheduler::init(handle, buffer);
   return ret;
 }
 
@@ -521,3 +520,23 @@ int xclPollCompletion(xclDeviceHandle handle, int min_compl, int max_compl, xclR
    xclhwemhal2::HwEmShim *drv = xclhwemhal2::HwEmShim::handleCheck(handle);
   return drv ? drv->xclPollCompletion(min_compl, max_compl, comps, actual, timeout) : -ENODEV;
 }
+
+/*
+ * API to get number of live processes. 
+ * Applicable only for System Flow as it supports Multiple processes on same device.
+ * For Hardware Emulation, return 0
+ */
+uint xclGetNumLiveProcesses(xclDeviceHandle handle)
+{
+    return 0;
+}
+
+int xclLogMsg(xclDeviceHandle handle, xclLogMsgLevel level, const char* tag, const char* format, ...)
+{
+  va_list args;
+  va_start(args, format);
+  int ret = xclhwemhal2::HwEmShim::xclLogMsg(handle, level, tag, format, args);
+  va_end(args);
+  return ret;
+}
+

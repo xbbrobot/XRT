@@ -37,6 +37,7 @@ namespace xclhwemhal2 {
   const unsigned HwEmShim::CONTROL_AP_START = 1;
   const unsigned HwEmShim::CONTROL_AP_DONE  = 2;
   const unsigned HwEmShim::CONTROL_AP_IDLE  = 4;
+  const unsigned HwEmShim::CONTROL_AP_CONTINUE  = 0x10;
 
   Event::Event()
   {
@@ -163,27 +164,23 @@ namespace xclhwemhal2 {
       auto top = reinterpret_cast<const axlf*>(header);
       if (auto sec = xclbin::get_axlf_section(top,EMBEDDED_METADATA)) {
         xmlFileSize = sec->m_sectionSize;
-        xmlFile = new char[xmlFileSize+1];
+        xmlFile = new char[xmlFileSize];
         memcpy(xmlFile, bitstreambin + sec->m_sectionOffset, xmlFileSize);
-        xmlFile[xmlFileSize] = 0;
       }
       if (auto sec = xclbin::get_axlf_section(top,BITSTREAM)) {
         zipFileSize = sec->m_sectionSize;
-        zipFile = new char[zipFileSize+1];
+        zipFile = new char[zipFileSize];
         memcpy(zipFile, bitstreambin + sec->m_sectionOffset, zipFileSize);
-        zipFile[zipFileSize] = 0;
       }
       if (auto sec = xclbin::get_axlf_section(top,DEBUG_IP_LAYOUT)) {
         debugFileSize = sec->m_sectionSize;
-        debugFile = new char[debugFileSize+1];
+        debugFile = new char[debugFileSize];
         memcpy(debugFile, bitstreambin + sec->m_sectionOffset, debugFileSize);
-        debugFile[debugFileSize] = 0;
       }
       if (auto sec = xclbin::get_axlf_section(top,MEM_TOPOLOGY)) {
         memTopologySize = sec->m_sectionSize;
-        memTopology = new char[memTopologySize+1];
+        memTopology = new char[memTopologySize];
         memcpy(memTopology, bitstreambin + sec->m_sectionOffset, memTopologySize);
-        memTopology[memTopologySize] = 0;
       }
     }
     else
@@ -221,7 +218,7 @@ namespace xclhwemhal2 {
 
       return -1;
     }
-    int returnValue = xclLoadBitstreamWorker(zipFile,zipFileSize+1,xmlFile,xmlFileSize+1,debugFile,debugFileSize+1, memTopology, memTopologySize+1);
+    int returnValue = xclLoadBitstreamWorker(zipFile,zipFileSize,xmlFile,xmlFileSize,debugFile,debugFileSize, memTopology, memTopologySize);
 
     //mFirstBinary is a static member variable which becomes false once first binary gets loaded
     if(returnValue >=0 && mFirstBinary )
@@ -314,6 +311,7 @@ namespace xclhwemhal2 {
     const mem_topology* m_mem = (reinterpret_cast<const ::mem_topology*>(memTopology));
     if(m_mem)
     {
+      mMembanks.clear();
       for (int32_t i=0; i<m_mem->m_count; ++i)
       {
         if(m_mem->m_mem_data[i].m_type == MEM_TYPE::MEM_STREAMING)
@@ -332,37 +330,12 @@ namespace xclhwemhal2 {
         mDDRMemoryManager.push_back(new xclemulation::MemoryManager(it.size, it.base_addr, getpagesize()));
       }
     }
-    // Write XML metadata from xclbin
-    std::string xmlFileName("");
-    xmlFileName = binaryDirectory + "/xmltmp";
-    bool xmlFileCreated=false;
-
-    while(!xmlFileCreated)
-    {
-      FILE *fp=fopen(xmlFileName.c_str(),"rb");
-      if(fp==NULL) xmlFileCreated=true;
-      else
-      {
-        fclose(fp);
-        xmlFileName += std::string("_");
-      }
-    }
-    FILE *fp=fopen(xmlFileName.c_str(),"wb");
-    if(fp==NULL)
-    {
-      if (mLogStream.is_open())
-      {
-        mLogStream << __func__ << " failed to create temporary xml file " << std::endl;
-      }
-      return -1;
-    }
-    fwrite(xmlfile,xmlFileSize,1,fp);
-    fflush(fp);
-    fclose(fp);
-
+  
     pt::ptree xml_project;
+    std::string sXmlFile;
+    sXmlFile.assign(xmlfile,xmlFileSize);
     std::stringstream xml_stream;
-    xml_stream << xmlfile;
+    xml_stream<<sXmlFile;
     pt::read_xml(xml_stream,xml_project);
 
      // iterate platforms
@@ -477,11 +450,6 @@ namespace xclhwemhal2 {
 
         launcherArgs = launcherArgs + cmdLineOption.str();
         sim_path = binaryDirectory+ "/behav_waveform/xsim";
-        struct stat statBuf;
-        if ( stat(sim_path.c_str(), &statBuf) != 0 )
-        {
-          sim_path = binaryDirectory+ "/behav_waveform/questa";
-        }
         std::string generatedWcfgFileName = sim_path + "/" + bdName + "_behav.wcfg";
         unsetenv("SDX_LAUNCH_WAVEFORM_BATCH");
         setenv("SDX_WAVEFORM",generatedWcfgFileName.c_str(),true);
@@ -497,11 +465,6 @@ namespace xclhwemhal2 {
 
         launcherArgs = launcherArgs + cmdLineOption.str();
         sim_path = binaryDirectory+ "/behav_waveform/xsim";
-        struct stat statBuf;
-        if ( stat(sim_path.c_str(), &statBuf) != 0 )
-        {
-          sim_path = binaryDirectory+ "/behav_waveform/questa";
-        }
         std::string generatedWcfgFileName = sim_path + "/" + bdName + "_behav.wcfg";
         setenv("SDX_LAUNCH_WAVEFORM_BATCH","1",true);
         setenv("SDX_WAVEFORM",generatedWcfgFileName.c_str(),true);
@@ -516,23 +479,12 @@ namespace xclhwemhal2 {
         if(sim_path.empty())
         {
           sim_path = binaryDirectory+ "/behav_gdb/xsim";
-          struct stat statBuf1;
-          if ( stat(sim_path.c_str(), &statBuf1) != 0 )
-          {
-            sim_path = binaryDirectory+ "/behav_gdb/questa";
-          }
         }
-        struct stat statBuf;
-        if ( stat(sim_path.c_str(), &statBuf) != 0 )
+        if (boost::filesystem::exists(sim_path) == false)
         {
           std::string dMsg = "WARNING: [SDx-EM 07] None of the kernels is compiled in debug mode. Compile kernels in debug mode to launch waveform";
           logMessage(dMsg,0);
           sim_path = binaryDirectory+ "/behav_gdb/xsim";
-          struct stat statBuf2;
-          if ( stat(sim_path.c_str(), &statBuf2) != 0 )
-          {
-            sim_path = binaryDirectory+ "/behav_gdb/questa";
-          }
         }
       }
       std::stringstream socket_id;
@@ -1005,6 +957,8 @@ uint32_t HwEmShim::getAddressSpace (uint32_t topology)
     uint64_t origSize = size;
     unsigned int paddingFactor = xclemulation::config::getInstance()->getPaddingFactor();
     uint64_t result = mDDRMemoryManager[flags]->alloc(size,paddingFactor);
+    if(result == xclemulation::MemoryManager::mNull)
+      return result;
     uint64_t finalValidAddress = result+(paddingFactor*size);
     uint64_t finalSize = size+(2*paddingFactor*size);
     mAddrMap[finalValidAddress] = finalSize;
@@ -1068,8 +1022,7 @@ uint32_t HwEmShim::getAddressSpace (uint32_t topology)
       {
         // Copy waveform database
         std::string extension = "wdb";
-        struct stat statBuf;
-        if ( stat(std::string(binaryDirectory+ "/msim").c_str(), &statBuf) == 0 )
+        if (boost::filesystem::exists(binaryDirectory+"/msim"))
         {
           extension = "wlf";
         }
@@ -1110,6 +1063,11 @@ uint32_t HwEmShim::getAddressSpace (uint32_t topology)
         std::string sdxEmulatorLogFilePath= binaryDirectory + "/" + "sdx_emulator.log";
         std::string destPath7 = "'" + std::string(path) + "/" + fileName + "_sdx_emulator.log'";
         systemUtil::makeSystemCall(sdxEmulatorLogFilePath, systemUtil::systemOperation::COPY, destPath7);
+        
+        // Copy xsc_report Log file
+        std::string xscReportLogFilePath= binaryDirectory + "/" + "xsc_report.log";
+        std::string destPath8 = "'" + std::string(path) + "/" + fileName + "_xsc_report.log'";
+        systemUtil::makeSystemCall(xscReportLogFilePath, systemUtil::systemOperation::COPY, destPath8);
 
       }
       i++;
@@ -1342,6 +1300,11 @@ uint32_t HwEmShim::getAddressSpace (uint32_t topology)
       delete mMBSch;
       mMBSch = NULL;
     }
+    if(mDataSpace)
+    {
+      delete mDataSpace;
+      mDataSpace = NULL;
+    }
   }
 
   void HwEmShim::initMemoryManager(std::list<xclemulation::DDRBank>& DDRBankList)
@@ -1452,7 +1415,7 @@ uint32_t HwEmShim::getAddressSpace (uint32_t topology)
     mStreamProfilingNumberSlots = 0;
     mPerfMonFifoCtrlBaseAddress = 0;
     mPerfMonFifoReadBaseAddress = 0;
-
+    mDataSpace = new xclemulation::MemoryManager(0x10000000, 0, getpagesize());
   }
 
   bool HwEmShim::isMBSchedulerEnabled()
@@ -1753,7 +1716,7 @@ int HwEmShim::xclGetBOProperties(unsigned int boHandle, xclBOProperties *propert
 /*****************************************************************************************/
 
 /******************************** xclAllocBO *********************************************/
-int HwEmShim::xoclCreateBo(xclemulation::xocl_create_bo* info)
+uint64_t HwEmShim::xoclCreateBo(xclemulation::xocl_create_bo* info)
 {
 	size_t size = info->size;
   unsigned ddr = xclemulation::xocl_bo_ddr_idx(info->flags);
@@ -1775,13 +1738,25 @@ int HwEmShim::xoclCreateBo(xclemulation::xocl_create_bo* info)
   bool p2pBuffer = xocl_bo_p2p(xobj); 
   std::string sFileName("");
   
-  xobj->base = xclAllocDeviceBuffer2(size,XCL_MEM_DEVICE_RAM,ddr,p2pBuffer,sFileName);
+  if(xobj->flags & XCL_BO_FLAGS_EXECBUF)
+  {
+    uint64_t result = mDataSpace->alloc(size,1);
+    xobj->base = result;
+  }
+  else
+  {
+    xobj->base = xclAllocDeviceBuffer2(size,XCL_MEM_DEVICE_RAM,ddr,p2pBuffer,sFileName);
+  }
   xobj->filename = sFileName;
   xobj->size = size;
   xobj->userptr = NULL;
   xobj->buf = NULL;
   xobj->topology=ddr;
   xobj->fd = -1;
+  if(xobj->base == xclemulation::MemoryManager::mNull)
+  {
+    return xclemulation::MemoryManager::mNull;
+  }
 
   info->handle = mBufferCount;
   mXoclObjMap[mBufferCount++] = xobj;
@@ -1796,7 +1771,7 @@ unsigned int HwEmShim::xclAllocBO(size_t size, xclBOKind domain, unsigned flags)
     mLogStream << __func__ << ", " << std::this_thread::get_id() << ", " << std::hex << size << std::dec << " , "<<domain <<" , "<< flags << std::endl;
   }
   xclemulation::xocl_create_bo info = {size, mNullBO, flags};
-  int result = xoclCreateBo(&info);
+  uint64_t result = xoclCreateBo(&info);
   PRINTENDFUNC;
   return result ? mNullBO : info.handle;
 }
@@ -1811,7 +1786,7 @@ unsigned int HwEmShim::xclAllocUserPtrBO(void *userptr, size_t size, unsigned fl
     mLogStream << __func__ << ", " << std::this_thread::get_id() << ", " << userptr <<", " << std::hex << size << std::dec <<" , "<< flags << std::endl;
   }
   xclemulation::xocl_create_bo info = {size, mNullBO, flags};
-  int result = xoclCreateBo(&info);
+  uint64_t result = xoclCreateBo(&info);
   xclemulation::drm_xocl_bo* bo = xclGetBoByHandle(info.handle);
   if (bo) {
     bo->userptr = userptr;
@@ -2079,7 +2054,7 @@ size_t HwEmShim::xclWriteBO(unsigned int boHandle, const void *src, size_t size,
     PRINTENDFUNC;
     return -1;
   }
-  int returnVal = 0;
+  size_t returnVal = 0;
   if (xclCopyBufferHost2Device(bo->base, src, size, seek, bo->topology) != size)
   {
     returnVal = EIO;
@@ -2103,7 +2078,7 @@ size_t HwEmShim::xclReadBO(unsigned int boHandle, void *dst, size_t size, size_t
     PRINTENDFUNC;
     return -1;
   }
-  int returnVal = 0;
+  size_t returnVal = 0;
   if (xclCopyBufferDevice2Host(dst, bo->base, size, skip, bo->topology) != size)
   {
     returnVal = EIO;
@@ -2408,6 +2383,38 @@ int HwEmShim::xclFreeQDMABuf(uint64_t buf_hdl)
   }
   PRINTENDFUNC;
   return 0;//TODO
+}
+
+/*
+ * xclLogMsg()
+ */
+int HwEmShim::xclLogMsg(xclDeviceHandle handle, xclLogMsgLevel level, const char* tag, const char* format, va_list args1)
+{
+    int len = std::vsnprintf(nullptr, 0, format, args1);
+
+    if (len < 0) 
+    {
+        //illegal arguments
+        std::string err_str = "ERROR: Illegal arguments in log format string. ";
+        err_str.append(std::string(format));
+        xrt_core::message::send((xrt_core::message::severity_level)level, tag, err_str.c_str());
+        return len;
+    }
+    len++; //To include null terminator
+
+    std::vector<char> buf(len);
+    len = std::vsnprintf(buf.data(), len, format, args1);
+
+    if (len < 0) 
+    {
+        //error processing arguments
+        std::string err_str = "ERROR: When processing arguments in log format string. ";
+        err_str.append(std::string(format));
+        xrt_core::message::send((xrt_core::message::severity_level)level, tag, err_str.c_str());
+        return len;
+    }
+    xrt_core::message::send((xrt_core::message::severity_level)level, tag, buf.data());
+    return 0;
 }
 
 /********************************************** QDMA APIs IMPLEMENTATION END**********************************************/

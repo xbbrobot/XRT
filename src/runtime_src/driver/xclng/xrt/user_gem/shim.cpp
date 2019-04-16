@@ -368,9 +368,13 @@ int xocl::XOCLShim::pcieBarWrite(unsigned int pf_bar, unsigned long long offset,
 /*
  * xclLogMsg()
  */
-int xocl::XOCLShim::xclLogMsg(xclDeviceHandle handle, xclLogMsgLevel level, const char* tag, const char* format, va_list args1)
+int xocl::XOCLShim::xclLogMsg(xclDeviceHandle handle, xclLogMsgLevel level, const char* tag, const char* format, va_list args)
 {
-    int len = std::vsnprintf(nullptr, 0, format, args1);
+    va_list args_bak;
+    // vsnprintf will mutate va_list so back it up
+    va_copy(args_bak, args);
+    int len = std::vsnprintf(nullptr, 0, format, args_bak);
+    va_end(args_bak);
 
     if (len < 0) {
         //illegal arguments
@@ -379,10 +383,10 @@ int xocl::XOCLShim::xclLogMsg(xclDeviceHandle handle, xclLogMsgLevel level, cons
         xrt_core::message::send((xrt_core::message::severity_level)level, tag, err_str.c_str());
         return len;
     }
-    len++; //To include null terminator
+    ++len; //To include null terminator
 
     std::vector<char> buf(len);
-    len = std::vsnprintf(buf.data(), len, format, args1);
+    len = std::vsnprintf(buf.data(), len, format, args);
 
     if (len < 0) {
         //error processing arguments
@@ -756,11 +760,44 @@ void xocl::XOCLShim::xclSysfsGetDeviceInfo(xclDeviceInfo2 *info)
 
         dev->user->sysfs_get("mb_scheduler", "kds_numcdmas", errmsg, info->mNumCDMA);
         dev->user->sysfs_get("xmc", "xmc_12v_pex_vol", errmsg, info->m12VPex);
+        dev->user->sysfs_get("xmc", "xmc_12v_aux_vol", errmsg, info->m12VAux);
+        dev->user->sysfs_get("xmc", "xmc_12v_pex_curr", errmsg, info->mPexCurr);
+        dev->user->sysfs_get("xmc", "xmc_12v_aux_curr", errmsg, info->mAuxCurr);
+        dev->user->sysfs_get("xmc", "xmc_dimm_temp0", errmsg, info->mDimmTemp[0]);
+        dev->user->sysfs_get("xmc", "xmc_dimm_temp1", errmsg, info->mDimmTemp[1]);
+        dev->user->sysfs_get("xmc", "xmc_dimm_temp2", errmsg, info->mDimmTemp[2]);
+        dev->user->sysfs_get("xmc", "xmc_dimm_temp3", errmsg, info->mDimmTemp[3]);
+        dev->user->sysfs_get("xmc", "xmc_se98_temp0", errmsg, info->mSE98Temp[0]);
+        dev->user->sysfs_get("xmc", "xmc_se98_temp1", errmsg, info->mSE98Temp[1]);
+        dev->user->sysfs_get("xmc", "xmc_se98_temp2", errmsg, info->mSE98Temp[2]);
+        dev->user->sysfs_get("xmc", "xmc_fan_temp", errmsg, info->mFanTemp);
+        dev->user->sysfs_get("xmc", "xmc_fan_rpm", errmsg, info->mFanRpm);
+        dev->user->sysfs_get("xmc", "xmc_3v3_pex_vol", errmsg, info->m3v3Pex);
+        dev->user->sysfs_get("xmc", "xmc_3v3_aux_vol", errmsg, info->m3v3Aux);
+        dev->user->sysfs_get("xmc", "xmc_ddr_vpp_btm", errmsg, info->mDDRVppBottom);
+        dev->user->sysfs_get("xmc", "xmc_ddr_vpp_top", errmsg, info->mDDRVppTop);
+        dev->user->sysfs_get("xmc", "xmc_sys_5v5", errmsg, info->mSys5v5);
+        dev->user->sysfs_get("xmc", "xmc_1v2_top", errmsg, info->m1v2Top);
+        dev->user->sysfs_get("xmc", "xmc_1v8", errmsg, info->m1v8Top);
+        dev->user->sysfs_get("xmc", "xmc_0v85", errmsg, info->m0v85);
+        dev->user->sysfs_get("xmc", "xmc_mgt0v9avcc", errmsg, info->mMgt0v9);
+        dev->user->sysfs_get("xmc", "xmc_12v_sw", errmsg, info->m12vSW);
+        dev->user->sysfs_get("xmc", "xmc_mgtavtt", errmsg, info->mMgtVtt);
+        dev->user->sysfs_get("xmc", "xmc_vcc1v2_btm", errmsg, info->m1v2Bottom);
+        dev->user->sysfs_get("xmc", "xmc_vccint_vol", errmsg, info->mVccIntVol);
+        dev->user->sysfs_get("xmc", "xmc_fpga_temp", errmsg, info->mOnChipTemp);
+
         dev->user->sysfs_get("", "link_width", errmsg, info->mPCIeLinkWidth);
         dev->user->sysfs_get("", "link_speed", errmsg, info->mPCIeLinkSpeed);
         dev->user->sysfs_get("", "link_speed_max", errmsg, info->mPCIeLinkSpeedMax);
         dev->user->sysfs_get("", "link_width_max", errmsg, info->mPCIeLinkWidthMax);
-
+        std::vector<uint64_t> freqs;
+        dev->user->sysfs_get("icap", "clock_freqs", errmsg, freqs);
+        for (unsigned i = 0;
+            i < std::min(freqs.size(), ARRAY_SIZE(info->mOCLFrequency));
+            i++) {
+            info->mOCLFrequency[i] = freqs[i];
+        }
     }
 
 }
@@ -886,6 +923,7 @@ int xocl::XOCLShim::xclReClock2(unsigned short region, const unsigned short *tar
     obj.ocl_region = region;
     obj.ocl_target_freq[0] = targetFreqMHz[0];
     obj.ocl_target_freq[1] = targetFreqMHz[1];
+    obj.ocl_target_freq[2] = targetFreqMHz[2];
     ret = ioctl(mMgtHandle, XCLMGMT_IOCFREQSCALE, &obj);
     return ret ? -errno : ret;
 }
@@ -1775,6 +1813,7 @@ int xocl::XOCLShim::xclReClockUser(unsigned short region, const unsigned short *
     reClockInfo.region = region;
     reClockInfo.ocl_target_freq[0] = targetFreqMHz[0];
     reClockInfo.ocl_target_freq[1] = targetFreqMHz[1];
+    reClockInfo.ocl_target_freq[2] = targetFreqMHz[2];
     ret = ioctl(mUserHandle, DRM_IOCTL_XOCL_RECLOCK, &reClockInfo);
     return ret ? -errno : ret;
 }
@@ -1791,6 +1830,27 @@ int xocl::XOCLShim::xclMSD(struct drm_xocl_sw_mailbox *args)
     int ret;
     ret = ioctl(mMgtHandle, XCLMGMT_IOCSWMAILBOX, args);
     return ret ? -errno : ret;
+}
+
+uint xocl::XOCLShim::xclGetNumLiveProcesses()
+{
+  std::string errmsg;
+  auto dev = pcidev::get_dev(mBoardNumber);
+
+  // Below info from user pf.
+  if(dev->user) {
+    std::vector<std::string> stringVec;
+    dev->user->sysfs_get("", "kdsstat", errmsg, stringVec);
+    // Dependent on message format built in kdsstat_show. Checking number of "context" in kdsstat.
+    // kdsstat has "context: <number_of_live_processes>"
+    if(stringVec.size() >= 4) {
+        std::size_t p = stringVec[3].find_first_of("0123456789");
+        std::string subStr = stringVec[3].substr(p);
+        uint number = std::stoul(subStr);
+        return number;
+    }
+  }
+  return 0;
 }
 
 /*******************************/
@@ -1885,7 +1945,7 @@ int xclLoadXclBin(xclDeviceHandle handle, const xclBin *buffer)
     xocl::XOCLShim *drv = xocl::XOCLShim::handleCheck(handle);
     auto ret = drv ? drv->xclLoadXclBin(buffer) : -ENODEV;
     if (!ret)
-      ret = xrt_core::scheduler::init(handle,buffer);
+      ret = xrt_core::scheduler::init(handle, buffer);
     return ret;
 }
 
@@ -2291,4 +2351,10 @@ int xclMSD(xclDeviceHandle handle, struct drm_xocl_sw_mailbox *args)
 {
     xocl::XOCLShim *drv = xocl::XOCLShim::handleCheck(handle);
     return drv ? drv->xclMSD(args) : -ENODEV;
+}
+
+uint xclGetNumLiveProcesses(xclDeviceHandle handle)
+{
+    xocl::XOCLShim *drv = xocl::XOCLShim::handleCheck(handle);
+    return drv ? drv->xclGetNumLiveProcesses() : 0;
 }

@@ -497,3 +497,22 @@ int xclPollCompletion(xclDeviceHandle handle, int min_compl, int max_compl, xclR
   return drv ? drv->xclPollCompletion(min_compl, max_compl, comps, actual, timeout) : -ENODEV;
 }
 
+/*
+ * API to get number of live processes. 
+ * Applicable only for System Flow as it supports Multiple processes on same device.
+ * For CPU emulation, return 0
+ */
+uint xclGetNumLiveProcesses(xclDeviceHandle handle)
+{
+  return 0;
+}
+
+int xclLogMsg(xclDeviceHandle handle, xclLogMsgLevel level, const char* tag, const char* format, ...)
+{
+  va_list args;
+  va_start(args, format);
+  int ret = xclcpuemhal2::CpuemShim::xclLogMsg(handle, level, tag, format, args);
+  va_end(args);
+  return ret;
+}
+

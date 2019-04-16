@@ -200,7 +200,11 @@ SatelliteControllerFamily=""
 CardMgmtControllerFamily=""
 SchedulerFamily=""
 
-post_inst_msg="DSA package installed successfully."
+
+XBUTIL=/opt/xilinx/xrt/bin/xbutil
+post_inst_msg="DSA package installed successfully.
+Please flash card manually by running below command:
+sudo ${XBUTIL} flash -a ${opt_dsa}"
 
 createEntityAttributeArray ()
 {
@@ -325,6 +329,8 @@ initBMCVar()
          prefix="Alveo-Gen1:"
       elif [ "${SatelliteControllerFamily}" == "Alveo-Gen2" ]; then
          prefix="Alveo-Gen2:"
+      elif [ "${SatelliteControllerFamily}" == "Alveo-Gen3" ]; then
+         prefix="Alveo-Gen3:"
       else
          echo "ERROR: Unknown satellite controller family: ${SatelliteControllerFamily}"
          exit 1
