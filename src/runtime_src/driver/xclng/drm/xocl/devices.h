@@ -177,8 +177,8 @@ enum subdev_id {
 #define	XOCL_RES_SYSMON					\
 		((struct resource []) {			\
 			{				\
-			.start	= 0x260000,		\
-			.end 	= 0x26FFFF,		\
+			.start	= 0x250000,		\
+			.end 	= 0x25FFFF,		\
 			.flags  = IORESOURCE_MEM,	\
 			}				\
 		})
@@ -230,18 +230,18 @@ enum subdev_id {
 #define	XOCL_RES_AF					\
 		((struct resource []) {			\
 			{				\
-			.start	= 0x1F01000,		\
-			.end 	= 0x1F01FFF,		\
+			.start	= 0x1E01000,		\
+			.end 	= 0x1E01FFF,		\
 			.flags  = IORESOURCE_MEM,	\
 			},				\
 			{				\
-			.start	= 0x1F02000,		\
-			.end 	= 0x1F02FFF,		\
+			.start	= 0x1E02000,		\
+			.end 	= 0x1E02FFF,		\
 			.flags  = IORESOURCE_MEM,	\
 			},				\
 			{				\
-			.start	= 0x1F00000,		\
-			.end 	= 0x1F00FFF,		\
+			.start	= 0x1E00000,		\
+			.end 	= 0x1E00FFF,		\
 			.flags  = IORESOURCE_MEM,	\
 			},				\
 			{				\
@@ -262,23 +262,23 @@ enum subdev_id {
 #define	XOCL_RES_AF_DSA52				\
 		((struct resource []) {			\
 			{				\
-			.start	= 0x1F01000,		\
-			.end 	= 0x1F01FFF,		\
+			.start	= 0x1E01000,		\
+			.end 	= 0x1E01FFF,		\
 			.flags  = IORESOURCE_MEM,	\
 			},				\
 			{				\
-			.start	= 0x1F02000,		\
-			.end 	= 0x1F02FFF,		\
+			.start	= 0x1E02000,		\
+			.end 	= 0x1E02FFF,		\
 			.flags  = IORESOURCE_MEM,	\
 			},				\
 			{				\
-			.start	= 0x1F03000,		\
-			.end 	= 0x1F03FFF,		\
+			.start	= 0x1E03000,		\
+			.end 	= 0x1E03FFF,		\
 			.flags  = IORESOURCE_MEM,	\
 			},				\
 			{				\
-			.start	= 0x1F00000,		\
-			.end 	= 0x1F00FFF,		\
+			.start	= 0x1E00000,		\
+			.end 	= 0x1E00FFF,		\
 			.flags  = IORESOURCE_MEM,	\
 			},				\
 			{				\
@@ -316,8 +316,8 @@ enum subdev_id {
 #define	XOCL_RES_XVC_PRI				\
 	((struct resource []) {				\
 		{					\
-			.start	= 0x250000,		\
-			.end	= 0x25FFFF,		\
+			.start	= 0x1F60000,		\
+			.end	= 0x1F6FFFF,		\
 			.flags	= IORESOURCE_MEM,	\
 		},					\
 	})
@@ -383,12 +383,12 @@ enum subdev_id {
 		ARRAY_SIZE(XOCL_RES_DNA),		\
 	}
 
-#define	XOCL_MAILBOX_OFFSET_MGMT	0x1F10000
+#define	XOCL_MAILBOX_OFFSET_MGMT	0x1E10000
 #define	XOCL_RES_MAILBOX_MGMT				\
 	((struct resource []) {				\
 		{					\
 			.start	= XOCL_MAILBOX_OFFSET_MGMT, \
-			.end	= 0x1F1002F,		\
+			.end	= 0x1E1002F,		\
 			.flags  = IORESOURCE_MEM,	\
 		},					\
 		{					\
@@ -410,7 +410,7 @@ enum subdev_id {
 	((struct resource []) {				\
 		{					\
 			.start	= XOCL_MAILBOX_OFFSET_MGMT, \
-			.end	= 0x1F1002F,		\
+			.end	= 0x1E1002F,		\
 			.flags  = IORESOURCE_MEM,	\
 		},					\
 		{					\
@@ -477,8 +477,8 @@ enum subdev_id {
 	((struct resource []) {				\
 		/* HWICAP registers */			\
 		{					\
-			.start	= 0x20000,		\
-			.end	= 0x20119,		\
+			.start	= 0x1F40000,		\
+			.end	= 0x1F40119,		\
 			.flags  = IORESOURCE_MEM,	\
 		},					\
 		/* GENERAL_STATUS_BASE */		\
